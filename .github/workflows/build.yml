@@ -1,3 +1,4 @@
+
 name: Build APK
 
 on:
@@ -76,6 +77,11 @@ jobs:
           echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey" >> "$GITHUB_ENV"
           echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android" >> "$GITHUB_ENV"
 
+      - name: Ajustar projeto para Android
+        run: |
+          sed -i '/^\[rendering\]/a textures/vram_compression/import_etc2_astc=true' game/project.godot
+          cat game/project.godot
+
       - name: Importar assets
         run: |
           godot --headless --path game --import 2>&1 | tee import.log || true
@@ -98,6 +104,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "apk-${{ github.run_number }}" game/build/limiar-do-olimpo.apk --title "APK build ${{ github.run_number }}" --notes "Limiar do Olimpo - APK de teste (debug)."
+
+      - name: Mostrar erros do Godot
+        if: failure()
+        run: |
+          cat import.log export.log 2>/dev/null | grep -i -E "error|invalid|missing|cannot|requires|failed|not found" | head -15 | while IFS= read -r l; do echo "::error::${l:0:300}"; done
 
       - name: Guardar logs
         if: always()
